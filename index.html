@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sticky Notes Memory Board</title>
+  <style>
+    /* RESET */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+    body {
+      background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #f5f5f5;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 16px;
+      color: #ffeb3b;
+      text-shadow: 2px 2px 10px rgba(0,0,0,0.7);
+    }
+
+    /* BOARD */
+    .board {
+      width: 90%;
+      max-width: 1200px;
+      display: block;
+      gap: 20px;
+      padding: 20px;
+      position: relative;           /* important for absolutely positioned notes */
+      min-height: 500vh;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      overflow: hidden;
+      margin-bottom: 50px;
+      margin-top: 20px;
+    }
+
+    /* STICKY NOTES */
+    .note {
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+      transform: rotate(-2deg);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      word-wrap: break-word;
+      position: absolute;
+      min-width: 160px;
+      max-width: 220px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .note.grabbing { cursor: grabbing; transform: scale(1.03); box-shadow: 0 12px 30px rgba(0,0,0,0.6); }
+
+    .note::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 38px;
+      height: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 3px;
+    }
+
+    .note h3 { margin-bottom: 8px; font-size: 1.05rem; }
+    .note img { width: 100%; border-radius: 6px; margin-bottom: 8px; display:block; }
+
+    /* COLORS */
+    .yellow { background: #ffeb3b; color:#222; }
+    .pink   { background: #f8bbd0; color:#222; }
+    .blue   { background: #b3e5fc; color:#222; }
+    .green  { background: #c5e1a5; color:#222; }
+    .orange { background: #ffcc80; color:#222; }
+
+    /* FORM */
+    .form-container {
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      width: 90%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    }
+
+    input, textarea, button, select {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      font-size: 0.98rem;
+    }
+
+    input, textarea, select {
+      background: rgba(255,255,255,0.06);
+      color: #f5f5f5;
+    }
+
+    input::placeholder, textarea::placeholder { color: #aaa; }
+
+    .controls-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    button {
+      background: #ff7043;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.25s;
+    }
+
+    button:hover { background: #f4511e; }
+
+    /* SEARCH BAR */
+    #searchInput {
+      width: 90%;
+      max-width: 500px;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+    }
+
+    #searchInput::placeholder { color: #aaa; }
+
+    /* small helpers */
+    .muted { color: #ccc; font-size: 0.9rem; }
+
+  /* RESPONSIVENESS */
+@media (max-width: 768px) {
+  .board {
+    min-height: 70vh;
+    height: auto; /* allow content to grow */
+    overflow-y: auto;
+  }
+
+  .note {
+    min-width: 120px;
+    max-width: 160px;
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+
+  .note h3 {
+    font-size: 0.9rem;
+  }
+
+  .note img {
+    max-height: 100px;
+    object-fit: cover;
+  }
+
+  .form-container {
+    width: 100%;
+    padding: 12px;
+  }
+
+  input, textarea, button, select {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+
+  #searchInput {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+
+  .note {
+    min-width: 100px;
+    max-width: 140px;
+    font-size: 0.8rem;
+  }
+
+  .note h3 {
+    font-size: 0.85rem;
+  }
+
+  .form-container {
+    gap: 6px;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <h1>Student Acknowledgement</h1>
+
+  <!-- Search -->
+  <input type="text" id="searchInput" placeholder="Search memories...">
+
+  <!-- Form -->
+  <div class="form-container">
+    <div class="controls-row">
+      <input type="text" id="nameInput" placeholder="Your Name" />
+    
+    </div>
+
+    <textarea id="messageInput" rows="3" placeholder="Write your memory..."></textarea>
+    <input type="text" id="imageInput" placeholder="Image URL (optional)">
+    <div class="controls-row">
+      <button id="addBtn">Add Memory</button>
+  
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div class="board" id="board" aria-live="polite"></div>
+
+  <!-- Firebase + App logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      onSnapshot,
+      serverTimestamp,
+      updateDoc,
+      doc,
+      deleteDoc,
+      query,
+      orderBy,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    // ---------- YOUR FIREBASE CONFIG ----------
+  const firebaseConfig = {
+  apiKey: "AIzaSyA34k_TargWNCWbGlEimToVOo2_Hhf22cc",
+  authDomain: "memory-board-76c39.firebaseapp.com",
+  projectId: "memory-board-76c39",
+  storageBucket: "memory-board-76c39.firebasestorage.app",
+  messagingSenderId: "411447059636",
+  appId: "1:411447059636:web:1a2d527a191e6c1bb9e3e1"
+};
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const notesCol = collection(db, "notes");
+
+    // DOM refs
+    const board = document.getElementById('board');
+    const searchInput = document.getElementById('searchInput');
+    const addBtn = document.getElementById('addBtn');
+
+    // helpers
+    const COLORS = ['yellow','pink','blue','green','orange'];
+
+    // Create / Add note to Firestore
+    async function addNoteToFirestore({ name, message, imageURL, color, x, y }) {
+      try {
+        await addDoc(notesCol, {
+          name, message, imageURL: imageURL || null, color, x, y,
+          createdAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.error("Failed to add note:", err);
+      }
+    }
+
+    // Remove all notes (development helper) - use carefully
+    async function clearAllNotes() {
+      const snapshot = await getDocs(notesCol);
+      const deletes = [];
+      snapshot.forEach(docSnap => deletes.push(deleteDoc(doc(db,'notes',docSnap.id))));
+      await Promise.all(deletes);
+    }
+
+    // Render single note element (or update existing)
+    function renderNote(docSnap) {
+      const id = docSnap.id;
+      const data = docSnap.data();
+      let el = document.querySelector(`.note[data-id="${id}"]`);
+
+      if (!el) {
+        el = document.createElement('div');
+        el.className = `note ${data.color || 'yellow'}`;
+        el.setAttribute('data-id', id);
+        el.style.position = 'absolute';
+        el.style.zIndex = 1;
+        board.appendChild(el);
+        makeDraggable(el, id);
+      } else {
+        // update color class
+        COLORS.forEach(c => el.classList.toggle(c, c === (data.color || 'yellow')));
+      }
+
+      // Update content safely
+      el.innerHTML = '';
+      const nameEl = document.createElement('h3');
+      nameEl.textContent = data.name || 'Anonymous';
+      el.appendChild(nameEl);
+
+      if (data.imageURL) {
+        const img = document.createElement('img');
+        img.src = data.imageURL;
+        // Hide broken images
+        img.addEventListener('error', () => img.remove());
+        el.appendChild(img);
+      }
+
+      const msg = document.createElement('p');
+      msg.textContent = data.message || '';
+      el.appendChild(msg);
+
+      // Apply position (ensure numeric and limited to board)
+      const bx = board.clientWidth, by = board.clientHeight;
+      const left = (typeof data.x === 'number') ? Math.max(0, Math.min(bx - el.offsetWidth, data.x)) : 20;
+      const top  = (typeof data.y === 'number') ? Math.max(0, Math.min(by - el.offsetHeight, data.y)) : 20;
+      el.style.left = `${left}px`;
+      el.style.top  = `${top}px`;
+    }
+
+    // Subscribe to real-time updates
+    const q = query(notesCol, orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+      // Use a simple strategy: remove elements not present, update/add those present
+      const existing = new Set();
+      snapshot.forEach(docSnap => {
+        existing.add(docSnap.id);
+        renderNote(docSnap);
+      });
+
+      // remove elements that no longer exist
+      document.querySelectorAll('.note').forEach(el => {
+        if (!existing.has(el.getAttribute('data-id'))) el.remove();
+      });
+    });
+
+    // Add note button handler
+    addBtn.addEventListener('click', async () => {
+      const name = document.getElementById('nameInput').value.trim();
+      const message = document.getElementById('messageInput').value.trim();
+      const imageURL = document.getElementById('imageInput').value.trim();
+
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+      if (!name || !message) return alert("Please fill both name and message!");
+
+      // random position inside board
+      const elWidth = 200, elHeight = 160;
+      const x = Math.floor(Math.random() * Math.max(1, board.clientWidth - elWidth));
+      const y = Math.floor(Math.random() * Math.max(1, board.clientHeight - elHeight));
+
+      await addNoteToFirestore({ name, message, imageURL, color, x, y });
+
+      // clear inputs
+      document.getElementById('nameInput').value = '';
+      document.getElementById('messageInput').value = '';
+      document.getElementById('imageInput').value = '';
+    });
+
+    // Clear all notes (dev)
+
+
+    // Search filtering
+    searchInput.addEventListener('input', () => {
+      const term = searchInput.value.trim().toLowerCase();
+      document.querySelectorAll('.note').forEach(note => {
+        const text = note.innerText.toLowerCase();
+        note.style.display = text.includes(term) ? '' : 'none';
+      });
+    });
+
+    // DRAG: pointer events (works for mouse + touch)
+    function makeDraggable(noteEl, docId) {
+      let startX = 0, startY = 0, origX = 0, origY = 0;
+      let dragging = false;
+
+      const pointerDown = (e) => {
+        e.preventDefault();
+        dragging = true;
+        noteEl.classList.add('grabbing');
+        // pointer coordinates
+        startX = e.clientX;
+        startY = e.clientY;
+        // compute current positions
+        origX = parseFloat(noteEl.style.left || 0);
+        origY = parseFloat(noteEl.style.top || 0);
+        // capture pointer for the note
+        noteEl.setPointerCapture && noteEl.setPointerCapture(e.pointerId);
+      };
+
+      const pointerMove = (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        let newLeft = origX + dx;
+        let newTop  = origY + dy;
+
+        // clamp inside board
+        const maxLeft = Math.max(0, board.clientWidth - noteEl.offsetWidth);
+        const maxTop  = Math.max(0, board.clientHeight - noteEl.offsetHeight);
+        newLeft = Math.max(0, Math.min(maxLeft, newLeft));
+        newTop  = Math.max(0, Math.min(maxTop, newTop));
+
+        noteEl.style.left = `${newLeft}px`;
+        noteEl.style.top  = `${newTop}px`;
+      };
+
+      const pointerUp = async (e) => {
+        if (!dragging) return;
+        dragging = false;
+        noteEl.classList.remove('grabbing');
+        try {
+          // persist position to Firestore
+          const newX = parseFloat(noteEl.style.left || 0);
+          const newY = parseFloat(noteEl.style.top || 0);
+          if (docId) {
+            const noteDoc = doc(db, 'notes', docId);
+            await updateDoc(noteDoc, { x: newX, y: newY });
+          }
+        } catch (err) {
+          console.error("Failed to update note pos:", err);
+        }
+        // release pointer capture if supported
+        try { noteEl.releasePointerCapture && noteEl.releasePointerCapture(e.pointerId); } catch {}
+      };
+
+      // attach listeners
+      noteEl.addEventListener('pointerdown', pointerDown);
+      window.addEventListener('pointermove', pointerMove);
+      window.addEventListener('pointerup', pointerUp);
+
+      // cleanup if element removed later
+      const observer = new MutationObserver(() => {
+        if (!document.body.contains(noteEl)) {
+          noteEl.removeEventListener('pointerdown', pointerDown);
+          window.removeEventListener('pointermove', pointerMove);
+          window.removeEventListener('pointerup', pointerUp);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // initial note examples can be added using Firestore UI or using addNoteToFirestore
+    // (we're not adding static initial DOM elements here because Firestore will control the list)
+  </script>
+</body>
+</html>
